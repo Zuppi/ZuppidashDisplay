@@ -42,8 +42,25 @@ namespace ZuppidashHost
 
         private void OnTelemetryUpdated(object sender, SdkWrapper.TelemetryUpdatedEventArgs e)
         {
-            dataParser.ParseTelemetry(e);
             
+            float TCValue = 99;
+            try
+            {
+                var tcVar = wrapper.GetTelemetryValue<float>("dcTractionControl");
+                TCValue = tcVar.Value;         
+            }
+            catch{}
+
+            float BBValue = 99;
+            try
+            {
+                var bbVar = wrapper.GetTelemetryValue<float>("dcBrakeBias");
+                BBValue = bbVar.Value;
+            }
+            catch {}
+
+            dataParser.ParseTelemetry(e, (int)TCValue, Math.Round(BBValue, 2));
+
             displayConnection.SendMessage(dataParser.GetDisplayString(), dataParser.GetLedAmount(), dataParser.GetDotBin());
         }
 

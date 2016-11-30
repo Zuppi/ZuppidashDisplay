@@ -10,5 +10,8 @@ namespace ZuppidashHost
     {
         public enum CommandTargets { DISPLAY, IRACING, PROGRAM };
         public enum Commands { DISPLAY_NEXT, DISPLAY_PREVIOUS, DISPLAY_CLEAR, IR_NOTIRES, IR_ALLTIRES};
+        public enum SessionState { INVALID, GRIDDING, WARMUP, PARADE, RACING, CHECKERED, COOLDOWN };
+        public enum TrackLoc { NOTINWORLD, OFFTRACK, PITSTALL, PITTING, ONTRACK};
+        public enum DisplayMode { DEFAULT,TIMELEFT, TCCHANGE, BBCHANGE, GEARCHANGE };
     }
 }

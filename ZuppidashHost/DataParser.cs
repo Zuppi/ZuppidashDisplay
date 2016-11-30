@@ -14,14 +14,13 @@ namespace ZuppidashHost
         private XDocument shiftPoints;
 
         private readonly string shiftPointFile = "shiftpoints.xml";
-        private int displayMode;
+        private Enums.DisplayMode displayMode;
         private double modeTimer;
         private int startRPM;
         private int endRPM;
         private int RPMInterval;
         private string carTag;
         private int driverID;
-        private double prevLapFuel;
 
         private int dotBin;
         private bool disableLeds;
@@ -31,7 +30,7 @@ namespace ZuppidashHost
             previousTelemetry = null;
             currentTelemetry = null;
             sessionData = null;
-            displayMode = 0;
+            displayMode = Enums.DisplayMode.DEFAULT;
             modeTimer = 0;
             startRPM = 0;
             endRPM = 0;
@@ -39,7 +38,6 @@ namespace ZuppidashHost
             dotBin = 0;
             carTag = "";
             disableLeds = false;
-            prevLapFuel = 0;
             LoadXML();
         }
 
@@ -70,9 +68,9 @@ namespace ZuppidashHost
             this.carTag = carTag;
         }
 
-        public void ParseTelemetry(SdkWrapper.TelemetryUpdatedEventArgs e)
+        public void ParseTelemetry(SdkWrapper.TelemetryUpdatedEventArgs e, int TCValue, double BBValue)
         {
-            currentTelemetry = new TelemetryData(e);
+            currentTelemetry = new TelemetryData(e, TCValue, BBValue);
         }
 
         public void ParseSession(SdkWrapper.SessionInfoUpdatedEventArgs e)
@@ -98,6 +96,7 @@ namespace ZuppidashHost
 
         public string GetDisplayString()
         {
+            SetDisplayMode();
             string displayString = GenerateDisplayString();
             previousTelemetry = currentTelemetry;
             return displayString;
@@ -126,74 +125,95 @@ namespace ZuppidashHost
             shiftPoints.Save(shiftPointFile);
         }
 
+        private void SetDisplayMode()
+        {
+            if (previousTelemetry == null || currentTelemetry == null)
+            {
+                return;
+            }       
+
+            if (currentTelemetry.InCar())
+            {
+                disableLeds = false;
+                if ( displayMode == Enums.DisplayMode.TCCHANGE )
+                {
+                    if (currentTelemetry.GetUpdateTime() - modeTimer > 2)
+                    {
+                        modeTimer = 0;
+                        displayMode = Enums.DisplayMode.DEFAULT;            
+                    }
+                }
+                else if (displayMode == Enums.DisplayMode.BBCHANGE)
+                {
+                    if (currentTelemetry.GetUpdateTime() - modeTimer > 2)
+                    {
+                        modeTimer = 0;
+                        displayMode = Enums.DisplayMode.DEFAULT;
+                    }
+                }
+                else if (displayMode == Enums.DisplayMode.GEARCHANGE)
+                {
+                    if (currentTelemetry.GetUpdateTime() - modeTimer > 1)
+                    {
+                        modeTimer = 0;
+                        displayMode = Enums.DisplayMode.DEFAULT;
+                    }
+                }
+                else
+                {
+                    displayMode = Enums.DisplayMode.DEFAULT;
+                }            
+            }
+            else
+            {
+                disableLeds = true;
+                displayMode = Enums.DisplayMode.TIMELEFT;
+            }
+
+            if (previousTelemetry.GetTC() != currentTelemetry.GetTC())
+            {
+                modeTimer = currentTelemetry.GetUpdateTime();
+                displayMode = Enums.DisplayMode.TCCHANGE;
+                return;
+            }
+
+            if (previousTelemetry.GetBB() != currentTelemetry.GetBB())
+            {
+                modeTimer = currentTelemetry.GetUpdateTime();
+                displayMode = Enums.DisplayMode.BBCHANGE;
+                return;
+            }
+
+            if (!previousTelemetry.GetGear().Equals(currentTelemetry.GetGear()))
+            {
+                modeTimer = currentTelemetry.GetUpdateTime();
+                displayMode = Enums.DisplayMode.GEARCHANGE;
+                return;
+            }
+        }
 
         private string GenerateDisplayString()
         {
             dotBin = 0;
-            if (sessionData == null)
+            if (sessionData == null || previousTelemetry == null)
             {
                 return "        ";
             }
 
-            if (!currentTelemetry.InCar())
+            switch (displayMode)
             {
-                disableLeds = true;
-                dotBin = 40;
-                return currentTelemetry.getTimeLeftString();
-            }
-
-            if (previousTelemetry == null)
-            {
-                return "        ";
-            }
-
-            if (displayMode == 1)
-            {
-                if (currentTelemetry.GetUpdateTime() - modeTimer > 3)
-                {
-                    displayMode = 0;
-                    modeTimer = 0;
-                    return GetDefaultString();
-                }
-                else
-                {
-                    return (previousTelemetry.GetFuel() - currentTelemetry.GetFuel()).ToString() + "L";
-                }
-            }
-            else if (displayMode == 2)
-            {
-                if (currentTelemetry.GetUpdateTime() - modeTimer > 1)
-                {
-                    displayMode = 0;
-                    modeTimer = 0;
-                    return GetDefaultString();
-                }
-                else
-                {
+                case Enums.DisplayMode.TIMELEFT:
+                    dotBin = 40;
+                    return currentTelemetry.GetTimeLeftString();
+                case Enums.DisplayMode.BBCHANGE:
+                    dotBin = 2;
+                    return GetBBString();
+                case Enums.DisplayMode.TCCHANGE:
+                    return GetTCString();
+                case Enums.DisplayMode.GEARCHANGE:
                     return GetGearString();
-                }
-            }
-
-            if (!previousTelemetry.InCar() && currentTelemetry.InCar())
-            {
-                disableLeds = false;
-            }
-
-            //if (!previousTelemetry.GetLap().Equals(currentTelemetry.GetLap())){
-            //    displayMode = 1;
-            //    modeTimer = currentTelemetry.GetUpdateTime();
-            //    return (previousTelemetry.GetFuel()-currentTelemetry.GetFuel()).ToString()+"L";
-            //}
-            if (!previousTelemetry.GetGear().Equals(currentTelemetry.GetGear()))
-            {
-                displayMode = 2;
-                modeTimer = currentTelemetry.GetUpdateTime();
-                return GetGearString();
-            }
-
-            else
-            {
-                return GetDefaultString();
+                default:
+                    return GetDefaultString();
             }
         }
 
@@ -205,6 +225,16 @@ namespace ZuppidashHost
         private string GetGearString()
         {
             return "  " + currentTelemetry.GetGear() + " " + currentTelemetry.GetSpeedKMH().ToString().PadLeft(4);
+        }
+
+        private string GetTCString()
+        {
+            return "  TC " + currentTelemetry.GetTC().ToString().PadRight(3);
+        }
+
+        private string GetBBString()
+        {
+            return " bb " + currentTelemetry.GetBB().ToString().PadRight(4);
         }
 
         public int GetLedAmount()

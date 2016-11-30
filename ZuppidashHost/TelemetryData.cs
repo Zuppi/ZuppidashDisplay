@@ -15,8 +15,11 @@ namespace ZuppidashHost
         private double timeLeft;
         private int lap;
         private double fuelLeft;
+        private Enums.SessionState sessionState;
+        private int tcValue;
+        private double bbValue;
         
-        public TelemetryData(SdkWrapper.TelemetryUpdatedEventArgs e)
+        public TelemetryData(SdkWrapper.TelemetryUpdatedEventArgs e, int TCValue, double bbValue)
         {
             this.updateTime = e.UpdateTime;
             this.speed = e.TelemetryInfo.Speed.Value;
@@ -27,6 +30,9 @@ namespace ZuppidashHost
             this.timeLeft = e.TelemetryInfo.SessionTimeRemain.Value;
             this.lap = e.TelemetryInfo.Lap.Value;
             this.fuelLeft = e.TelemetryInfo.FuelLevel.Value;
+            this.sessionState = (Enums.SessionState)e.TelemetryInfo.SessionState.GetValue();
+            this.tcValue = TCValue;
+            this.bbValue = bbValue;
 
             if (e.TelemetryInfo.EngineWarnings.GetValue().ToString().Equals("PitSpeedLimiter"))
             {
@@ -36,6 +42,9 @@ namespace ZuppidashHost
             {
                 pitLimiterOn = false;
             }
+
+            
+            
         }
 
         public double GetUpdateTime()
@@ -87,12 +96,22 @@ namespace ZuppidashHost
             return inCar;
         }
 
-        public string getTempString()
+        public string GetTempString()
         {
             return Math.Round(trackTemp).ToString();
         }
 
-        public string getTimeLeftString()
+        public int GetTC()
+        {
+            return this.tcValue;
+        }
+
+        public double GetBB()
+        {
+            return this.bbValue;
+        }
+
+        public string GetTimeLeftString()
         {
             TimeSpan timeSpan = TimeSpan.FromSeconds(timeLeft);
             return " "+timeSpan.ToString("hhmmss")+" ";
@@ -104,6 +123,11 @@ namespace ZuppidashHost
             //{
             //    return timeSpan.ToString("mmss");
             //}
+        }
+
+        public Enums.SessionState GetSessionState()
+        {
+            return this.sessionState;
         }
 
         //public string GetDefaultString()
