@@ -162,34 +162,34 @@ namespace ZuppidashHost
                 else
                 {
                     displayMode = Enums.DisplayMode.DEFAULT;
-                }            
+                }
+
+                if (previousTelemetry.GetTC() != currentTelemetry.GetTC())
+                {
+                    modeTimer = currentTelemetry.GetUpdateTime();
+                    displayMode = Enums.DisplayMode.TCCHANGE;
+                    return;
+                }
+
+                if (previousTelemetry.GetBB() != currentTelemetry.GetBB())
+                {
+                    modeTimer = currentTelemetry.GetUpdateTime();
+                    displayMode = Enums.DisplayMode.BBCHANGE;
+                    return;
+                }
+
+                if (!previousTelemetry.GetGear().Equals(currentTelemetry.GetGear()))
+                {
+                    modeTimer = currentTelemetry.GetUpdateTime();
+                    displayMode = Enums.DisplayMode.GEARCHANGE;
+                    return;
+                }
             }
             else
             {
                 disableLeds = true;
                 displayMode = Enums.DisplayMode.TIMELEFT;
-            }
-
-            if (previousTelemetry.GetTC() != currentTelemetry.GetTC())
-            {
-                modeTimer = currentTelemetry.GetUpdateTime();
-                displayMode = Enums.DisplayMode.TCCHANGE;
-                return;
-            }
-
-            if (previousTelemetry.GetBB() != currentTelemetry.GetBB())
-            {
-                modeTimer = currentTelemetry.GetUpdateTime();
-                displayMode = Enums.DisplayMode.BBCHANGE;
-                return;
-            }
-
-            if (!previousTelemetry.GetGear().Equals(currentTelemetry.GetGear()))
-            {
-                modeTimer = currentTelemetry.GetUpdateTime();
-                displayMode = Enums.DisplayMode.GEARCHANGE;
-                return;
-            }
+            }         
         }
 
         private string GenerateDisplayString()

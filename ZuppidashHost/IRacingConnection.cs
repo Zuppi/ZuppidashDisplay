@@ -9,11 +9,16 @@ namespace ZuppidashHost
         private HostWindow hostWindow;
         private DataParser dataParser;
         private DisplayConnection displayConnection;
+        bool disableTC;
+        bool disableBB;
 
         public IRacingConnection(HostWindow window, DisplayConnection displayConnection)
         {
             this.hostWindow = window;
             this.displayConnection = displayConnection;
+
+            disableTC = false;
+            disableBB = false;
 
             wrapper = new SdkWrapper();           
             wrapper.TelemetryUpdated += OnTelemetryUpdated;
@@ -47,7 +52,11 @@ namespace ZuppidashHost
             try
             {
                 var tcVar = wrapper.GetTelemetryValue<float>("dcTractionControl");
-                TCValue = tcVar.Value;         
+                TCValue = tcVar.Value;
+                if (TCValue < 0)
+                {
+                    TCValue = 99;
+                }
             }
             catch{}
 
@@ -56,6 +65,10 @@ namespace ZuppidashHost
             {
                 var bbVar = wrapper.GetTelemetryValue<float>("dcBrakeBias");
                 BBValue = bbVar.Value;
+                if (BBValue < 10)
+                {
+                    BBValue = 99;
+                }
             }
             catch {}
 
@@ -72,6 +85,8 @@ namespace ZuppidashHost
         private void OnWrapperDisconnected(object sender, EventArgs e)
         {
             hostWindow.IracingStopped();
+            disableTC = false;
+            disableBB = false;
         }
     }
 }

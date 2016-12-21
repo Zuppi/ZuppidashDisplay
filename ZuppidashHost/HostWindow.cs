@@ -145,6 +145,7 @@ namespace ZuppidashHost
                 allowVisible = true;
                 this.Show();
                 this.WindowState = FormWindowState.Normal;
+                this.BringToFront();
             }        
         }
 
