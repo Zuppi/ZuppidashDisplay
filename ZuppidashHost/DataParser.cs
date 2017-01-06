@@ -19,6 +19,8 @@ namespace ZuppidashHost
         private int startRPM;
         private int endRPM;
         private int RPMInterval;
+        public bool showTC;
+        public bool showBB;
         private string carTag;
         private int driverID;
 
@@ -35,6 +37,8 @@ namespace ZuppidashHost
             startRPM = 0;
             endRPM = 0;
             RPMInterval = 0;
+            showTC = true;
+            showBB = true;
             dotBin = 0;
             carTag = "";
             disableLeds = false;
@@ -82,13 +86,13 @@ namespace ZuppidashHost
 
             sessionData = new SessionData(e);
 
-            if (!GetLedPoints())
+            if (!ReadXML())
             {
                 query = e.SessionInfo["DriverInfo"]["DriverCarSLFirstRPM"];
                 startRPM = int.Parse(query.GetValue(), NumberStyles.Any, CultureInfo.InvariantCulture);
                 query = e.SessionInfo["DriverInfo"]["DriverCarSLBlinkRPM"];
                 endRPM = int.Parse(query.GetValue(), NumberStyles.Any, CultureInfo.InvariantCulture);
-                SetLedPoints();
+                WriteXML();
             }
 
             RPMInterval = ( endRPM - startRPM) / 9;
@@ -102,7 +106,7 @@ namespace ZuppidashHost
             return displayString;
         }
 
-        private bool GetLedPoints()
+        private bool ReadXML()
         {
             foreach (XElement element in shiftPoints.Descendants("car"))
             {
@@ -110,17 +114,21 @@ namespace ZuppidashHost
                 {
                     startRPM = int.Parse(element.Descendants("startRPM").FirstOrDefault().Value);
                     endRPM = int.Parse(element.Descendants("endRPM").FirstOrDefault().Value);
+                    showTC = bool.Parse(element.Descendants("showTC").FirstOrDefault().Value);
+                    showBB = bool.Parse(element.Descendants("showBB").FirstOrDefault().Value);
                     return true;
                 }
             }
             return false;
         }
 
-        private void SetLedPoints()
+        private void WriteXML()
         {
             XElement carElement = new XElement("car", new XAttribute("name", carTag));
             carElement.Add(new XElement("startRPM", startRPM.ToString()));
             carElement.Add(new XElement("endRPM", endRPM.ToString()));
+            carElement.Add(new XElement("showTC", "1"));
+            carElement.Add(new XElement("showBB", "1"));
             shiftPoints.Descendants("shiftpoints").FirstOrDefault().Add(carElement);
             shiftPoints.Save(shiftPointFile);
         }
@@ -164,14 +172,14 @@ namespace ZuppidashHost
                     displayMode = Enums.DisplayMode.DEFAULT;
                 }
 
-                if (previousTelemetry.GetTC() != currentTelemetry.GetTC())
+                if (previousTelemetry.GetTC() != currentTelemetry.GetTC() && showTC)
                 {
                     modeTimer = currentTelemetry.GetUpdateTime();
                     displayMode = Enums.DisplayMode.TCCHANGE;
                     return;
                 }
 
-                if (previousTelemetry.GetBB() != currentTelemetry.GetBB())
+                if (previousTelemetry.GetBB() != currentTelemetry.GetBB() && showBB)
                 {
                     modeTimer = currentTelemetry.GetUpdateTime();
                     displayMode = Enums.DisplayMode.BBCHANGE;

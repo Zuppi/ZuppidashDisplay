@@ -9,24 +9,17 @@ namespace ZuppidashHost
         private HostWindow hostWindow;
         private DataParser dataParser;
         private DisplayConnection displayConnection;
-        bool disableTC;
-        bool disableBB;
 
         public IRacingConnection(HostWindow window, DisplayConnection displayConnection)
         {
             this.hostWindow = window;
             this.displayConnection = displayConnection;
 
-            disableTC = false;
-            disableBB = false;
-
             wrapper = new SdkWrapper();           
             wrapper.TelemetryUpdated += OnTelemetryUpdated;
             wrapper.SessionInfoUpdated += OnSessionInfoUpdated;
             wrapper.Connected += OnWrapperConnected;
             wrapper.Disconnected += OnWrapperDisconnected;
-
-            dataParser = new DataParser();
         }
 
         public void Open(int updateFrequency)
@@ -80,13 +73,13 @@ namespace ZuppidashHost
         private void OnWrapperConnected(object sender, EventArgs e)
         {
             hostWindow.IracingStarted();
+            dataParser = new DataParser();
         }
 
         private void OnWrapperDisconnected(object sender, EventArgs e)
         {
             hostWindow.IracingStopped();
-            disableTC = false;
-            disableBB = false;
+            dataParser = null;
         }
     }
 }
